@@ -1,9 +1,9 @@
-#include <vector>
-#include <algorithm>
 #include <ctime>
 #include <iostream>
 
 #include <matplot/matplot.h>
+
+#include "stoichastics.h"
 using namespace std;
 using namespace matplot;
 
