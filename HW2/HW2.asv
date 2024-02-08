@@ -64,10 +64,11 @@ fprintf('2c) Standard Deviation on a(Cubic): %0.6g\n\n', sqrt(Pabcd(1,1)));
 %% QUESTION 3
 clear;
 
+N_mc = 1e3;
 a = [0 10 0 10]';
 b = [0 0 10 10]';
+r2_true = [25 65 45 85]';
 sigma_r = 0.5;
-r2 = [25 65 45 85]' + sigma_r*randn(4,1);
 H_func = @(x, y) [2*(x-a) 2*(y-b)];
 
 s_hat = [0 0]';
@@ -75,11 +76,22 @@ ds = 1e3;
 while ds > 1e-4
     r2_hat = (s_hat(1) - a).^2 + (s_hat(2) - b).^2;
     H = H_func(s_hat(1), s_hat(2));
-    ds = pinv(H)*(r2 - r2_hat);
+    ds = pinv(H)*(r2_true - r2_hat);
     s_hat = s_hat + ds;
 end
-P = sigma_r*sigma_r*inv(H'*H);
-fprintf('3c) Position Solution: [%0.2g, %0.2g]\n\n', s_hat);
+
+for i = 1:N_mc
+    r2 = r2_true + sigma_r*randn(4,1);
+    while ds > 1e-4
+        r2_hat = (s_hat(1) - a).^2 + (s_hat(2) - b).^2;
+        H = H_func(s_hat(1), s_hat(2));
+        ds = pinv(H)*(r2_true - r2_hat);
+        s_hat = s_hat + ds;
+    end
+    x_mc(i) = s_hat
+end
+P = sigma_r*inv(H'*H);
+fprintf('3c) Position Solution: [%0.6g, %0.6g]\n\n', s_hat);
 
 %% QUESTION 4
 clear;
@@ -113,7 +125,7 @@ gpsSOOP = GPS_LS(comb_rho, comb_sv_pos, X0_guess);
 fprintf('4a) Position Solution from 4 Satellites: [%0.6g, %0.6g, %0.6g, %0.6g]\n', first4);
 fprintf('4b) Position Solution from 9 Satellites: [%0.6g, %0.6g, %0.6g, %0.6g]\n', all9);
 fprintf('4c) Position Solution w/ Perfect Clock: [%0.6g, %0.6g, %0.6g, %0.6g]\n', perfClock);
-fprintf('4d) This results in an infinite loop.\n');
+fprintf('4d) This results in an infinite loop.\n')
 fprintf('4e) Position Solution w/ 2 GPS SVs and 2 SOOPs: [%0.6g, %0.6g, %0.6g, %0.6g]\n\n', gpsSOOP);
 
 %% QUESTION 5
