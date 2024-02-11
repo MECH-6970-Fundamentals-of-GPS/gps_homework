@@ -1,159 +1,184 @@
+%% GPS Fundamentals - HW2
+% Walter Livingston
 %% QUESTION 1
 clear; close all; clc;
 a = 3;                          % True State
-N_max = 50;                     % Number of Samples
+N_max = 10;                     % Number of Samples
 M = 1e4;                        % Number of Monte Carlos
 y_var = 1;                      % Measurement Variance
 
 P = zeros(N_max,1);             % True Covariance
+P_an = zeros(N_max,1);          % Analytical Covariance
 P_hat = zeros(N_max,1);         % Monte Carlo Covariance
+% Monte Carlo
 for N = 1:N_max
     H = ones(N,1);              % Geometry Matrix
-    P(N) = y_var/(H'*H);        % True Covariance
-
+    P(N) = y_var/(H'*H);        % True Variance
+    P_an(N) = y_var*(1/N);      % Analytical Covariance
     a_hat = zeros(M,1);         % State Estimates
     for i = 1:M
         y = H*a + sqrt(y_var)*randn(N,1);       % Noisy Measurements
         a_hat(i) = LS(y, H, a_hat(i));          % Least Squares Estimate
     end
 
-    P_hat(N) = var(a_hat);
+    P_hat(N) = var(a_hat);      % Sample Variance
 end
 
 figure();
 hold("on");
 title("Covariance v. Number of Samples");
 plot(P, '-o');
-plot(P_hat, '-*');
+plot(P_an, '--+');
+plot(P_hat, '--*k');
 xlabel("Number of Samples");
 ylabel("Variance");
-legend("True Covariance", "Estimated Covariance");
+legend("True Variance", "Analytical Variance", "Estimated Variance");
 
 %% QUESTION 2
 clear;
-x = 0:4;
-y = [0.181 2.680 3.467 3.101 3.437]';
-y_var = 0.4^2;
+x = 0:4;                        % X-values
+y = [0.181 2.680 3.467 3.101 3.437]';           % Y-Values
+y_var = 0.4^2;                  % Variance on Y
 
-Hab = [ones(length(x),1) x'];
-ab = LS(y, Hab, [0 0]');
-Pab = y_var*inv(Hab'*Hab);
+Hab = [ones(length(x),1) x'];   % Linear Geometry Matrix
+ab = LS(y, Hab, [0 0]');        % Linear Coefficient Estimates
+Pab = y_var*inv(Hab'*Hab);      % Linear Covariance Matrix
 fprintf('Linear Fit Coefficients: [%0.4g %0.4g]\n', ab);
 
-Habc = [Hab (x.^2)'];
-abc = LS(y, Habc, [0 0 0]');
-Pabc = y_var*inv(Habc'*Habc);
+Habc = [Hab (x.^2)'];           % Quadratic Geometry Matrix
+abc = LS(y, Habc, [0 0 0]');    % Quadratic Coefficient Estimates
+Pabc = y_var*inv(Habc'*Habc);   % Quadratic Covariance Matrix
 fprintf('Quadratic Fit Coefficients: [%0.4g %0.4g %0.4g]\n', abc);
 
-Habcd = [Habc (x.^3)'];
-abcd = LS(y, Habcd, [0 0 0 0]');
-Pabcd = y_var*inv(Habcd'*Habcd);
+Habcd = [Habc (x.^3)'];         % Cubic Geometry Matrix
+abcd = LS(y, Habcd, [0 0 0 0]');                % Cubic Coefficient Matrix
+Pabcd = y_var*inv(Habcd'*Habcd);                % Cubic Covariance Matrix
 fprintf('Cubic Fit Coefficients: [%0.4g %0.4g %0.4g %0.4g]\n', abcd);
 
 fprintf('Estimation error for a:\n');
 fprintf('\tLinear: %0.4g\n', sqrt(Pab(1,1)));
 fprintf('\tQuadratic: %0.4g\n', sqrt(Pabc(1,1)));
-fprintf('\tCubic: %0.4g\n\n', sqrt(Pabcd(1,1)));
+fprintf('\tCubic: %0.4g\n', sqrt(Pabcd(1,1)));
+fprintf(['The coefficent estimates are not consistent between the \n' ...
+    '\tthe different models.  This is because it takes different \n' ...
+    '\tcoefficients to get different order polynomials to pass through \n' ...
+    '\tthe points defined by x and y.\n'])
+fprintf(['The estimation error from the linear model is the most \n' ...
+    '\taccurate estimation error for a, as that is the system where\n' ...
+    '\tthe states are the most overdefined.\n\n']);
+
+range = [0 5];                  % Plotting Range
+figure();
+hold("on");
+title("2) Plot of Models w/ Estimated Coefficients");
+fplot(@(x) ab(1) + ab(2).*x, range, '-o');
+fplot(@(x) abc(1) + abc(2).*x + abc(3).*x.^2, range, '--+');
+fplot(@(x) abcd(1) + abcd(2).*x + abcd(3).*x.^2 + abcd(4).*x.^3, range, '--*k');
+xlabel("X");
+ylabel("Y");
+legend('Linear', 'Quadratic', 'Cubic');
 
 %% QUESTION 3
 clear;
-a = [0 10 0 10]';
-b = [0 0 10 10]';
-r2 = [25 65 45 85]';
-r_var = 0.5^2;
+a = [0 10 0 10]';               % A-values
+b = [0 0 10 10]';               % B-values
+r2 = [25 65 45 85]';            % Range-Squared Values [m]
+r_var = 0.5^2;                  % Variance on Range Measurements
 
-H_func = @(s) [2*(s(1)-a) 2*(s(2)-b)];
-s = [0 0]';
-ds = 1e3;
+H_func = @(s) [2*(s(1)-a) 2*(s(2)-b)];          % Jacobian (Geometry Matrix)
+s = [0 0]';                     % Initial State Estimate
+ds = 1e3;                       % Initial State Delta
+% Least Squares
 while ds > 1e-4
-    r2_hat = (s(1) - a).^2 + (s(2) - b).^2;
-    H = H_func(s);
-    ds = pinv(H)*(r2 - r2_hat);
-    s = s + ds;
+    r2_hat = (s(1) - a).^2 + (s(2) - b).^2;     % Range Estimate
+    H = H_func(s);              % Geometry Matrix
+    ds = pinv(H)*(r2 - r2_hat); % Delta State Estimate
+    s = s + ds;                 % New State Estimate
 end
 
-P = r_var*inv(H'*H);
-err = sqrt(diag(P));
+P = r_var*inv(H'*H);            % Covariance Matrix for Position Estimate
+err = sqrt(diag(P));            % Standard Deviation of Position Estimate
 
-M = 1e3;
-s_hat = zeros(2,M);
+M = 1e4;                        % Number of Monte Carlos
+s_hat = zeros(2,M);             % Vector of Initial State Estimates
+% Monte Carlo
 for i = 1:M
-    r2 = [25 65 45 85]' + sqrt(r_var)*randn(4,1);
-    s = [0 0]';
-    ds = 1e3;
+    r2 = [25 65 45 85]' + sqrt(r_var)*randn(4,1);   % Initialize noisy range measurements
+    s = [0 0]';                 % Initialize Current State Estimate
+    ds = 1e3;                   % Initial State Delta
+    % Least Squares
     while ds > 1e-4
-        r2_hat = (s(1) - a).^2 + (s(2) - b).^2;
-        H = H_func(s);
-        ds = pinv(H)*(r2 - r2_hat);
-        s = s + ds;
+        r2_hat = (s(1) - a).^2 + (s(2) - b).^2;     % Range Estimate
+        H = H_func(s);          % Geometry Matrix
+        ds = pinv(H)*(r2 - r2_hat);                 % Delta State Estimate
+        s = s + ds;             % New State Estimate
     end
-    s_hat(:,i) = s;
+    s_hat(:,i) = s;             % Save Current Monte Carlo State
 end
-err_hat = std(s_hat')';
+err_hat = std(s_hat')';         % Sample Standard Deviation
 
-fprintf('The actual error on the estimate: [%0.3g %0.3g]\n', err);
-fprintf('The estimated error on the estimate: [%0.3g %0.3g]\n\n', err_hat);
+fprintf(['3b) The expected error (1-sigma) on the estimate: ' ...
+    '[%0.3g %0.3g]\n'], err);
+fprintf('3c) The position solution: [%0.2g %0.2g]\n', s);
+fprintf(['3d) The estimated error (1-sigma) on the estimate: ' ...
+    '[%0.3g %0.3g]\n\n'], err_hat);
 
 %% QUESTION 4
 clear;
-filename = 'HW2_data.txt';
-T = readlines(filename);
-Xs = zeros(length(T)-4, 3);
-rho = zeros(length(T)-4, 1);
-r_var = 0.5^2;
+filename = 'HW2_data.txt';      % Data File
+T = readlines(filename);        % Read in Data File
+Xs = zeros(length(T)-4, 3);     % Satellite Positions
+rho = zeros(length(T)-4, 1);    % Pseudoranges
+r_var = 0.5^2;                  % Receiver Variance
+% Read in Satellite Positions and Pseudoranges
 for i = 4:length(T)
-    data = strsplit(T(i));
-    Xs(i-3,1) = str2double(data(2));
-    Xs(i-3,2) = str2double(data(3));
-    Xs(i-3,3) = str2double(data(4));
-    rho(i-3) = str2double(data(5));
+    data = strsplit(T(i));      % Split String
+    Xs(i-3,1) = str2double(data(2));                % SV X-position
+    Xs(i-3,2) = str2double(data(3));                % SV Y-position
+    Xs(i-3,3) = str2double(data(4));                % SV Z-position
+    rho(i-3) = str2double(data(5));                 % Pseudorange
 end
 
-X0 = [0 0 0 0];
-[Xu_4, H_4] = GPS_LS(rho(1:4), Xs(1:4,:), X0);
-[Xu_9, H_9] = GPS_LS(rho(1:9), Xs(1:9,:), X0);
-[Xu_cl, H_cl] = GPS_LS(rho(1:4), Xs(1:4,:), [X0(1:3),Xu_9(4)]);
-% [Xu_SOOP, H_SOOP] = GPS_LS(rho(1:9), Xs(1:9,:), X0);      % Infinite Loop
-% Poor Geometry
-X_guess = [423000 -5362000 3417000 0];
-[Xu_SOOP, H_SOOP] = GPS_LS([rho(1:2);rho(10:11)], [Xs(1:2,:);Xs(10:11,:)], X_guess);
+X0 = [0 0 0 0];                 % Initial User Position Estimate (Center of the Earth)
+[Xu_4, H_4] = GPS_LS(rho(1:4), Xs(1:4,:), X0);      % LS w/ 4 SVs
+[Xu_9, H_9] = GPS_LS(rho(1:9), Xs(1:9,:), X0);      % LS w/ 9 SVs
+[Xu_cl, H_cl] = GPS_LS(rho(1:4), Xs(1:4,:), ...
+    [X0(1:3),Xu_9(4)]);         % LS w/ perfect clock
+% [Xu_SOOP, H_SOOP] = GPS_LS(rho(1:9), Xs(1:9,:), ...
+%   X0);      % LS w/ 2 SOOPs & 2 SVs
+% 4d) The above results in an Infinite Loop due to poor geometry
+X_guess = [423000 -5362000 3417000 0];              % Better Position Estimate
+[Xu_SOOP, H_SOOP] = GPS_LS([rho(1:2);rho(10:11)], ...
+    [Xs(1:2,:);Xs(10:11,:)], X_guess);              % LS w/ 2 SOOPs & 2 SVs
 
 lla0 = ecef2lla(Xu_9(1:3));
-C = ECEF_ENU(lla0(1), lla0(2))';
-
-P_4 = r_var*inv(H_4'*H_4);
-P_4(1:3,1:3) = C*P_4(1:3,1:3)*C';
-H_error4 = norm(diag(P_4(1:2,1:2)));
-V_error4 = norm(P_4(3,3));
-G_error4 = norm(diag(P_4));
-P_9 = r_var*inv(H_9'*H_9);
-P_9(1:3,1:3) = C*P_9(1:3,1:3)*C';
-H_error9 = norm(diag(P_9(1:2,1:2)));
-V_error9 = norm(P_9(3,3));
-G_error9 = norm(diag(P_9));
-P_cl = r_var*inv(H_cl'*H_cl);
-P_cl(1:3,1:3) = C*P_cl(1:3,1:3)*C';
-H_errorCl = norm(diag(P_cl(1:2,1:2)));
-V_errorCl = norm(P_cl(3,3));
-G_errorCl = norm(diag(P_cl));
-P_SOOP = r_var*inv(H_SOOP'*H_SOOP);
-P_SOOP(1:3,1:3) = C*P_SOOP(1:3,1:3)*C';
-H_errorSOOP = norm(diag(P_SOOP(1:2,1:2)));
-V_errorSOOP = norm(P_SOOP(3,3));
-G_errorSOOP = norm(diag(P_SOOP));
-
+[DOP4, err4] = GPS_STATS(r_var, H_4, lla0);
+[DOP9, err9] = GPS_STATS(r_var, H_9, lla0);
+[DOPcl, errCl] = GPS_STATS(r_var, H_cl, lla0);
+[DOP_SOOP, errSOOP] = GPS_STATS(r_var, H_SOOP, lla0);
 x = ["4 SVs" "9 SVs" "4 SVs + Perfect Clock" "2 SVs + 2 SOOPs"];
-y = [G_error4 G_error9 G_errorCl G_errorSOOP;
-     H_error4 H_error9 H_errorCl H_errorSOOP;
-     V_error4 V_error9 V_errorCl V_errorSOOP];
+y = [err4.G err9.G errCl.G errSOOP.G;
+     err4.H err9.H errCl.H errSOOP.H;
+     err4.V err9.V errCl.V errSOOP.V];
+
+fprintf(['4a) The position and bias solution w/ 4 SVs: ' ...
+    '[%0.6g %0.6g %0.6g %0.6g] m\n'], Xu_4);
+fprintf(['4b) The position and bias solution w/ 9 SVs: ' ...
+    '[%0.6g %0.6g %0.6g %0.6g] m\n'], Xu_9);
+fprintf(['4c) The position and bias solution w/ 4 SVs & a perfect clock: ' ...
+    '[%0.6g %0.6g %0.6g %0.6g] m\n'], [Xu_cl Xu_9(4)]);
+fprintf(['4e) The position and bias solution w/ 2 SVs & 2 SOOPs: ' ...
+    '[%0.6g %0.6g %0.6g %0.6g] m\n\n'], Xu_SOOP);
 
 figure();
 hold("on");
-title('GDOP for Varying Scenarios')
-bar(x,y, "stacked");
+title('4) Errors for Varying Scenarios');
+bar(x,y);
 xlabel('Scenario');
-ylabel('GDOP');
-legend('PDOP', 'HDOP', 'GDOP')
+ylabel('Error (m)');
+legend('Geometry', 'Horizontal', 'Vertical');
+ax = gca;
+ax.FontSize = 22;
 
 %% QUESTION 5
 c = physconst("lightspeed");
@@ -163,63 +188,75 @@ I_func = @(theta) A1 * (1 + 16*(0.53 - theta/180)^3);
 rho9 = rho(1:9);
 Xs9 = Xs(1:9,:);
 
-[E, N, U] = ecef2enu(Xs9(:,1), Xs9(:,2), Xs9(:,3), lla0(1), lla0(2), lla0(3), wgs84Ellipsoid('kilometer'));
+[E, N, U] = ecef2enu(Xs9(:,1), Xs9(:,2), Xs9(:,3), ...
+    lla0(1), lla0(2), lla0(3), wgs84Ellipsoid('kilometer'));
 h = vecnorm([E, N]');
 ang = atan2d(U, h');
 
 i = 1;
-for a = 1:5:50
+a_range = 1:5:50;
+for a = a_range
     Xs9_filt = Xs9(ang > a, :);
     rho_filt = rho(ang > a);
     if length(rho_filt) > 4
         dx = 1e3*ones(4,1);
-        state = [0 0 0 0];
+        state(i,:) = [0 0 0 0];
         while norm(dx) > 1e-4
-            r = vecnorm((Xs9_filt - state(1:3)), 2, 2);
-            U = (Xs9_filt - state(1:3))./r;
+            r = vecnorm((Xs9_filt - state(i,1:3)), 2, 2);
+            U = (Xs9_filt - state(i,1:3))./r;
             H = [-U ones(length(U),1)];
-            rho_hat = r + state(4) + c*I_func(i);
+            rho_hat = r + state(i,4) + c*I_func(i);
             dx = pinv(H)*(rho_filt - rho_hat);
-            state = state + dx';
+            state(i,:) = state(i,:) + dx';
         end
-        bleh(i,:) = state;
-        P = r_var*inv(H'*H);
-        P(1:3,1:3) = P(1:3,1:3)*ECEF_ENU(lla0(1), lla0(2));
-        a_range(i) = a;
-        GDOP(i) = vecnorm(diag(P));
-        PDOP(i) = vecnorm(diag(P(1:3,1:3)));
-        HDOP(i) = vecnorm(diag(P(1:2,1:2)));
-        VDOP(i) = P(3,3);
-        TDOP(i) = P(4,4);
+        [DOP(i), err(i)] = GPS_STATS(r_var, H, lla0);
         i = i + 1;
-    else
-        break;
     end
 end
 
-X_err = abs(bleh - Xu_9);
-
 figure();
 hold("on");
-title("GDOP vs. Mask Angle");
-plot(a_range, GDOP, '*');
-plot(a_range, PDOP, '*');
-plot(a_range, HDOP, '*');
-plot(a_range, VDOP, '*');
-plot(a_range, TDOP, '*');
+title("DOP vs. Mask Angle");
+plot(a_range, vertcat(DOP.G), 'o', LineWidth = 2);
+plot(a_range, vertcat(DOP.P), '+', LineWidth = 2);
+plot(a_range, vertcat(DOP.H), 'x', LineWidth = 2);
+plot(a_range, vertcat(DOP.V), '^', LineWidth = 2);
+plot(a_range, vertcat(DOP.T), 'v', LineWidth = 2);
 xlabel('Mask Angle');
 ylabel('DOP');
 legend('GDOP', 'PDOP', 'HDOP', 'VDOP', 'TDOP');
+ax = gca;
+ax.FontSize = 22;
 
+figure();
+hold("on");
+title("Error vs. Mask Angle");
+plot(a_range, vertcat(err.G), 'o', LineWidth = 2);
+plot(a_range, vertcat(err.P), '+', LineWidth = 2);
+plot(a_range, vertcat(err.H), 'x', LineWidth = 2);
+plot(a_range, vertcat(err.V), '^', LineWidth = 2);
+plot(a_range, vertcat(err.T), 'v', LineWidth = 2);
+xlabel('Mask Angle');
+ylabel('Error (m)');
+legend({'Geometry', 'Position', 'Horizontal', 'Vertical', 'Time'});
+ax = gca;
+ax.FontSize = 22;
+
+fprintf(['In this particular scenario, the mask angle can be rather\n' ...
+    'high without the position error going up significantly. This is \n' ...
+    'probably due to the fact that the majority of the satellites are \n' ...
+    '30 deg or higher from the horizon. In a scenario where more of the \n' ...
+    'SVs were on the horizon, you would see the error rise dramatically \n' ...
+    'at lower mask angles.']);
 %% FUNCTIONS
 function [s] = LS(y, H, s0)
-s = s0;
-ds = 1e3*ones(length(s0),1);
-while norm(ds) > 1e-4
-    y_hat = H*s;
-    ds = pinv(H)*(y - y_hat);
-    s = s + ds;
-end
+    s = s0;
+    ds = 1e3*ones(length(s0),1);
+    while norm(ds) > 1e-4
+        y_hat = H*s;
+        ds = pinv(H)*(y - y_hat);
+        s = s + ds;
+    end
 end
 
 function [Xu, H] = GPS_LS(rho, Xs, Xu)
@@ -228,25 +265,46 @@ function [Xu, H] = GPS_LS(rho, Xs, Xu)
     if Xu(4) ~= 0
         b = Xu(4);
         Xu = [0 0 0];
-        flag = true;
+        rho_hat_func = @(r, Xu) r + b;
+        H_func = @(U) -U;
+    else
+        rho_hat_func = @(r, Xu) r + Xu(4);
+        H_func = @(U) [-U ones(length(U),1)];
     end
     while norm(dx) > 1e-4
         r = vecnorm((Xs - Xu(1:3)), 2, 2);
         U = (Xs - Xu(1:3))./r;
-        if flag
-            H = [-U];
-            rho_hat = r + b;
-        else
-            H = [-U ones(length(U),1)];
-            rho_hat = r + Xu(4);
-        end
+        rho_hat = rho_hat_func(r, Xu);
+        H = H_func(U);
         dx = pinv(H)*(rho - rho_hat);
         Xu = Xu + dx';
     end
 end
 
-function [C] = ECEF_ENU(lat, lon)
+function [DOP, error] = GPS_STATS(sigma2, H, lla0)
+    P = sigma2*inv(H'*H);
+    C = ECEF_ENU(lla0(1), lla0(2));
+    P(1:3, 1:3) = C*P(1:3, 1:3)*C';
+    DOP.G = norm(diag(P)./sigma2);
+    DOP.P = norm(diag(P(1:3,1:3))./sigma2);
+    DOP.H = norm(diag(P(1:2,1:2))./sigma2);
+    DOP.V = norm(diag(P(3,3))./sigma2);
+    error.G = sigma2*DOP.G;
+    error.P = sigma2*DOP.P;
+    error.H = sigma2*DOP.H;
+    error.V = sigma2*DOP.V;
+    if size(H) > 3 
+        DOP.T = norm(diag(P(4,4))./sigma2);
+        error.T = sigma2*DOP.T;
+    end
+end
+
+function [C] = ENU_ECEF(lat, lon)
     C = [-sind(lon), -cosd(lon)*sind(lat), cosd(lon)*cosd(lat);
           cosd(lon), -sind(lon)*sind(lat), sind(lon)*cosd(lat);
                   0,            cosd(lat),           sind(lat)];
+end
+
+function [C] = ECEF_ENU(lat, lon)
+    C = ENU_ECEF(lat, lon)';
 end
