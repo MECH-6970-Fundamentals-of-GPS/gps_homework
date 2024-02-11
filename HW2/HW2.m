@@ -1,200 +1,252 @@
 %% QUESTION 1
 clear; close all; clc;
+a = 3;                          % True State
+N_max = 50;                     % Number of Samples
+M = 1e4;                        % Number of Monte Carlos
+y_var = 1;                      % Measurement Variance
 
-N = 1e3;
-N_mc = 1e4;
-a_true = 3;
-H = ones(N,1);
-variance = 1;
-P_true = variance/((H'*H));
-P_N = 1/N;
-a = zeros(N_mc,1);
-for i = 1:N_mc
-    y = H*a_true + randn(N,1);
-    da = 10;
-    a(i) = LS(y, H, a(i));
+P = zeros(N_max,1);             % True Covariance
+P_hat = zeros(N_max,1);         % Monte Carlo Covariance
+for N = 1:N_max
+    H = ones(N,1);              % Geometry Matrix
+    P(N) = y_var/(H'*H);        % True Covariance
+
+    a_hat = zeros(M,1);         % State Estimates
+    for i = 1:M
+        y = H*a + sqrt(y_var)*randn(N,1);       % Noisy Measurements
+        a_hat(i) = LS(y, H, a_hat(i));          % Least Squares Estimate
+    end
+
+    P_hat(N) = var(a_hat);
 end
-P_mc = var(a);
 
-fprintf('1) True Accuracy: %0.6g\n', P_true);
-fprintf('1a) Accuracy as a Function of Samples: %0.6g\n', P_N);
-fprintf('1b) Accuracy Determined from Monte Carlo: %0.6g\n\n', P_mc);
+figure();
+hold("on");
+title("Covariance v. Number of Samples");
+plot(P, '-o');
+plot(P_hat, '-*');
+xlabel("Number of Samples");
+ylabel("Variance");
+legend("True Covariance", "Estimated Covariance");
 
 %% QUESTION 2
 clear;
-
 x = 0:4;
-y = [0.181, 2.680, 3.467, 3.101, 3.437]';
-var_y = (0.4)^2;
-N = length(x);
+y = [0.181 2.680 3.467 3.101 3.437]';
+y_var = 0.4^2;
 
-Hab = [ones(N,1), x'];
-ab = zeros(2,1);
-[ab, idx1] = LS(y, Hab, ab);
-Pab = var_y*inv(Hab'*Hab);
+Hab = [ones(length(x),1) x'];
+ab = LS(y, Hab, [0 0]');
+Pab = y_var*inv(Hab'*Hab);
+fprintf('Linear Fit Coefficients: [%0.4g %0.4g]\n', ab);
 
-Habc = [ones(N,1), x', (x.^2)'];
-abc = zeros(3,1);
-[abc, idx2] = LS(y, Habc, abc);
-Pabc = var_y*inv(Habc'*Habc);
+Habc = [Hab (x.^2)'];
+abc = LS(y, Habc, [0 0 0]');
+Pabc = y_var*inv(Habc'*Habc);
+fprintf('Quadratic Fit Coefficients: [%0.4g %0.4g %0.4g]\n', abc);
 
-Habcd = [ones(N,1), x', (x.^2)', (x.^3)'];
-abcd = zeros(4,1);
-[abcd, idx3] = LS(y, Habcd, abcd);
-Pabcd = var_y*inv(Habcd'*Habcd);
+Habcd = [Habc (x.^3)'];
+abcd = LS(y, Habcd, [0 0 0 0]');
+Pabcd = y_var*inv(Habcd'*Habcd);
+fprintf('Cubic Fit Coefficients: [%0.4g %0.4g %0.4g %0.4g]\n', abcd);
 
-warning('off');
-figure();
-title('2) Estimated Polynomial Coefficients Plotted')
-hold("on");
-fplot(@(x) ab(1) + ab(2)*x);
-fplot(@(x) abc(1) + abc(2)*x + abc(3)*x^2, '--o');
-fplot(@(x) abcd(1) + abcd(2)*x + abcd(3)*x^2 + abcd(4)*x^3, '-.*');
-xlabel("X");
-ylabel("Y");
-xlim([0 5]);
-ylim([0 5]);
-legend('Linear', 'Quadratic', 'Cubic')
-warning('on');
-
-fprintf('2a) Standard Deviation on a(Linear): %0.6g\n', sqrt(Pab(1,1)));
-fprintf('2b) Standard Deviation on a(Quadratic): %0.6g\n', sqrt(Pabc(1,1)));
-fprintf('2c) Standard Deviation on a(Cubic): %0.6g\n\n', sqrt(Pabcd(1,1)));
+fprintf('Estimation error for a:\n');
+fprintf('\tLinear: %0.4g\n', sqrt(Pab(1,1)));
+fprintf('\tQuadratic: %0.4g\n', sqrt(Pabc(1,1)));
+fprintf('\tCubic: %0.4g\n\n', sqrt(Pabcd(1,1)));
 
 %% QUESTION 3
 clear;
-
 a = [0 10 0 10]';
 b = [0 0 10 10]';
-sigma_r = 0.5;
-r2 = [25 65 45 85]' + sigma_r*randn(4,1);
-H_func = @(x, y) [2*(x-a) 2*(y-b)];
+r2 = [25 65 45 85]';
+r_var = 0.5^2;
 
-s_hat = [0 0]';
+H_func = @(s) [2*(s(1)-a) 2*(s(2)-b)];
+s = [0 0]';
 ds = 1e3;
 while ds > 1e-4
-    r2_hat = (s_hat(1) - a).^2 + (s_hat(2) - b).^2;
-    H = H_func(s_hat(1), s_hat(2));
+    r2_hat = (s(1) - a).^2 + (s(2) - b).^2;
+    H = H_func(s);
     ds = pinv(H)*(r2 - r2_hat);
-    s_hat = s_hat + ds;
+    s = s + ds;
 end
-P = sigma_r*sigma_r*inv(H'*H);
-fprintf('3c) Position Solution: [%0.2g, %0.2g]\n\n', s_hat);
+
+P = r_var*inv(H'*H);
+err = sqrt(diag(P));
+
+M = 1e3;
+s_hat = zeros(2,M);
+for i = 1:M
+    r2 = [25 65 45 85]' + sqrt(r_var)*randn(4,1);
+    s = [0 0]';
+    ds = 1e3;
+    while ds > 1e-4
+        r2_hat = (s(1) - a).^2 + (s(2) - b).^2;
+        H = H_func(s);
+        ds = pinv(H)*(r2 - r2_hat);
+        s = s + ds;
+    end
+    s_hat(:,i) = s;
+end
+err_hat = std(s_hat')';
+
+fprintf('The actual error on the estimate: [%0.3g %0.3g]\n', err);
+fprintf('The estimated error on the estimate: [%0.3g %0.3g]\n\n', err_hat);
 
 %% QUESTION 4
 clear;
-
 filename = 'HW2_data.txt';
 T = readlines(filename);
-sv_pos = zeros(length(T)-4, 3);
-rho = zeros(length(T)-4,1);
-sigma_r = 0.5;  % [m]
+Xs = zeros(length(T)-4, 3);
+rho = zeros(length(T)-4, 1);
+r_var = 0.5^2;
 for i = 4:length(T)
     data = strsplit(T(i));
-    sv_pos(i-3,1) = str2double(data(2));
-    sv_pos(i-3,2) = str2double(data(3));
-    sv_pos(i-3,3) = str2double(data(4));
+    Xs(i-3,1) = str2double(data(2));
+    Xs(i-3,2) = str2double(data(3));
+    Xs(i-3,3) = str2double(data(4));
     rho(i-3) = str2double(data(5));
 end
 
 X0 = [0 0 0 0];
+[Xu_4, H_4] = GPS_LS(rho(1:4), Xs(1:4,:), X0);
+[Xu_9, H_9] = GPS_LS(rho(1:9), Xs(1:9,:), X0);
+[Xu_cl, H_cl] = GPS_LS(rho(1:4), Xs(1:4,:), [X0(1:3),Xu_9(4)]);
+% [Xu_SOOP, H_SOOP] = GPS_LS(rho(1:9), Xs(1:9,:), X0);      % Infinite Loop
+% Poor Geometry
+X_guess = [423000 -5362000 3417000 0];
+[Xu_SOOP, H_SOOP] = GPS_LS([rho(1:2);rho(10:11)], [Xs(1:2,:);Xs(10:11,:)], X_guess);
 
-first4 = GPS_LS(rho(1:4), sv_pos(1:4,:), X0);
-all9 = GPS_LS(rho(1:9), sv_pos(1:9, :), X0);
+lla0 = ecef2lla(Xu_9(1:3));
+C = ECEF_ENU(lla0(1), lla0(2))';
 
-rho_corr = rho(1:9) + all9(:,4);
-perfClock = GPS_LS(rho_corr(1:4), sv_pos(1:4, :), X0);
+P_4 = r_var*inv(H_4'*H_4);
+P_4(1:3,1:3) = C*P_4(1:3,1:3)*C';
+H_error4 = norm(diag(P_4(1:2,1:2)));
+V_error4 = norm(P_4(3,3));
+G_error4 = norm(diag(P_4));
+P_9 = r_var*inv(H_9'*H_9);
+P_9(1:3,1:3) = C*P_9(1:3,1:3)*C';
+H_error9 = norm(diag(P_9(1:2,1:2)));
+V_error9 = norm(P_9(3,3));
+G_error9 = norm(diag(P_9));
+P_cl = r_var*inv(H_cl'*H_cl);
+P_cl(1:3,1:3) = C*P_cl(1:3,1:3)*C';
+H_errorCl = norm(diag(P_cl(1:2,1:2)));
+V_errorCl = norm(P_cl(3,3));
+G_errorCl = norm(diag(P_cl));
+P_SOOP = r_var*inv(H_SOOP'*H_SOOP);
+P_SOOP(1:3,1:3) = C*P_SOOP(1:3,1:3)*C';
+H_errorSOOP = norm(diag(P_SOOP(1:2,1:2)));
+V_errorSOOP = norm(P_SOOP(3,3));
+G_errorSOOP = norm(diag(P_SOOP));
 
-comb_rho = [rho(1:2); rho(10:11)];
-comb_sv_pos = [sv_pos(1:2,:); sv_pos(10:11,:)];
-X0_guess = [423000, -5362000, 3417000 all9(:,4)];
-gpsSOOP = GPS_LS(comb_rho, comb_sv_pos, X0_guess);
-
-fprintf('4a) Position Solution from 4 Satellites: [%0.6g, %0.6g, %0.6g, %0.6g]\n', first4);
-fprintf('4b) Position Solution from 9 Satellites: [%0.6g, %0.6g, %0.6g, %0.6g]\n', all9);
-fprintf('4c) Position Solution w/ Perfect Clock: [%0.6g, %0.6g, %0.6g, %0.6g]\n', perfClock);
-fprintf('4d) This results in an infinite loop.\n');
-fprintf('4e) Position Solution w/ 2 GPS SVs and 2 SOOPs: [%0.6g, %0.6g, %0.6g, %0.6g]\n\n', gpsSOOP);
-
-%% QUESTION 5
-A1 = 5e-9; % [s]
-I_error = @(theta) A1.*(1 + 16.*(0.53 - (theta./180)).^3);
-ang = @(z, r) asind(z./r);
-diff = (sv_pos - all9(1:3));
-z = diff(:,3);
-angles = ang(z, rho);
-errors = I_error(angles);
+x = ["4 SVs" "9 SVs" "4 SVs + Perfect Clock" "2 SVs + 2 SOOPs"];
+y = [G_error4 G_error9 G_errorCl G_errorSOOP;
+     H_error4 H_error9 H_errorCl H_errorSOOP;
+     V_error4 V_error9 V_errorCl V_errorSOOP];
 
 figure();
-plot(angles, errors, 'o');
-title('Angle vs. Ionospheric Errors');
-xlabel("Angles (deg)");
-ylabel("Error");
+hold("on");
+title('GDOP for Varying Scenarios')
+bar(x,y, "stacked");
+xlabel('Scenario');
+ylabel('GDOP');
+legend('PDOP', 'HDOP', 'GDOP')
 
-%% QUESTION 5 - ALTERNATIVE
-Xu = all9;
-idx = 1;
-angle_range = 0:1:40;
-HDOP = zeros(length(angle_range),2);
-VDOP = zeros(length(angle_range),1);
-TDOP = zeros(length(angle_range),1);
-for a = angle_range
-    diff = (sv_pos - Xu(1:3));
-    z = diff(:,3);
-    angles = ang(z, rho);
-    rho_cut = rho(angles > a);
-    sv_pos_cut = sv_pos(angles > a, :);
-    angles_cut = angles(angles > a);
-    if length(rho_cut) >= 4
+%% QUESTION 5
+c = physconst("lightspeed");
+A1 = 5e-9;
+I_func = @(theta) A1 * (1 + 16*(0.53 - theta/180)^3);
+
+rho9 = rho(1:9);
+Xs9 = Xs(1:9,:);
+
+[E, N, U] = ecef2enu(Xs9(:,1), Xs9(:,2), Xs9(:,3), lla0(1), lla0(2), lla0(3), wgs84Ellipsoid('kilometer'));
+h = vecnorm([E, N]');
+ang = atan2d(U, h');
+
+i = 1;
+for a = 1:5:50
+    Xs9_filt = Xs9(ang > a, :);
+    rho_filt = rho(ang > a);
+    if length(rho_filt) > 4
         dx = 1e3*ones(4,1);
+        state = [0 0 0 0];
         while norm(dx) > 1e-4
-            r = vecnorm((sv_pos_cut - Xu(1:3)), 2, 2);
-            U = (sv_pos_cut - Xu(1:3))./r;
+            r = vecnorm((Xs9_filt - state(1:3)), 2, 2);
+            U = (Xs9_filt - state(1:3))./r;
             H = [-U ones(length(U),1)];
-            rho_hat = r + Xu(4) + I_error(angles_cut);
-            dx = pinv(H)*(rho_cut - rho_hat);
-            Xu = Xu + dx';
+            rho_hat = r + state(4) + c*I_func(i);
+            dx = pinv(H)*(rho_filt - rho_hat);
+            state = state + dx';
         end
-        P = sigma_r*inv(H'*H);
-        HDOP(idx, :) = sqrt(P(1,1)^2 + P(2,2)^2);
-        VDOP(idx, :) = [P(3,3)];
-        TDOP(idx, :) = [P(4,4)];
-        idx = idx + 1;
+        bleh(i,:) = state;
+        P = r_var*inv(H'*H);
+        P(1:3,1:3) = P(1:3,1:3)*ECEF_ENU(lla0(1), lla0(2));
+        a_range(i) = a;
+        GDOP(i) = vecnorm(diag(P));
+        PDOP(i) = vecnorm(diag(P(1:3,1:3)));
+        HDOP(i) = vecnorm(diag(P(1:2,1:2)));
+        VDOP(i) = P(3,3);
+        TDOP(i) = P(4,4);
+        i = i + 1;
     else
         break;
     end
 end
 
+X_err = abs(bleh - Xu_9);
+
 figure();
-hold on
-plot(angle_range, HDOP, '*');
-plot(angle_range, VDOP, 'o');
-plot(angle_range, TDOP, 'x');
-title("DOP vs. Mask Angle");
-xlabel("Angle (deg)");
-ylabel("DOP");
-legend('HDOP', 'VDOP', 'TDOP');
+hold("on");
+title("GDOP vs. Mask Angle");
+plot(a_range, GDOP, '*');
+plot(a_range, PDOP, '*');
+plot(a_range, HDOP, '*');
+plot(a_range, VDOP, '*');
+plot(a_range, TDOP, '*');
+xlabel('Mask Angle');
+ylabel('DOP');
+legend('GDOP', 'PDOP', 'HDOP', 'VDOP', 'TDOP');
 
 %% FUNCTIONS
-function [state, idx] = LS(y, H, state)
-    ds = 1e3;
-    idx = 0;
-    while ds > 1e-4
-        y_hat = H*state;
-        ds = pinv(H)*(y - y_hat);
-        state = state + ds;
-        idx = idx + 1;
-    end
+function [s] = LS(y, H, s0)
+s = s0;
+ds = 1e3*ones(length(s0),1);
+while norm(ds) > 1e-4
+    y_hat = H*s;
+    ds = pinv(H)*(y - y_hat);
+    s = s + ds;
+end
 end
 
 function [Xu, H] = GPS_LS(rho, Xs, Xu)
     dx = 1e3*ones(4,1);
+    flag = false;
+    if Xu(4) ~= 0
+        b = Xu(4);
+        Xu = [0 0 0];
+        flag = true;
+    end
     while norm(dx) > 1e-4
         r = vecnorm((Xs - Xu(1:3)), 2, 2);
         U = (Xs - Xu(1:3))./r;
-        H = [-U ones(length(U),1)];
-        rho_hat = r + Xu(4);
+        if flag
+            H = [-U];
+            rho_hat = r + b;
+        else
+            H = [-U ones(length(U),1)];
+            rho_hat = r + Xu(4);
+        end
         dx = pinv(H)*(rho - rho_hat);
         Xu = Xu + dx';
     end
+end
+
+function [C] = ECEF_ENU(lat, lon)
+    C = [-sind(lon), -cosd(lon)*sind(lat), cosd(lon)*cosd(lat);
+          cosd(lon), -sind(lon)*sind(lat), sind(lon)*cosd(lat);
+                  0,            cosd(lat),           sind(lat)];
 end
