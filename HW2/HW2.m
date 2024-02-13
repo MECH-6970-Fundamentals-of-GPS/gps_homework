@@ -195,12 +195,12 @@ rho9 = rho(1:9);
 Xs9 = Xs(1:9,:);
 
 [E, N, U] = ecef2enu(Xs9(:,1), Xs9(:,2), Xs9(:,3), ...
-    lla0(1), lla0(2), lla0(3), wgs84Ellipsoid('kilometer'));
+    lla0(1), lla0(2), lla0(3), wgs84Ellipsoid('meter'));
 h = vecnorm([E, N]');
 ang = atan2d(U, h');
 
 i = 1;
-a_range = 1:5:50;
+a_range = 1:90;
 for a = a_range
     Xs9_filt = Xs9(ang > a, :);
     rho_filt = rho(ang > a);
@@ -218,17 +218,19 @@ for a = a_range
         % This function converts to ENU
         [DOP(i), err(i)] = GPS_STATS(r_var, H, lla0);
         i = i + 1;
+    else
+        break;
     end
 end
 
 figure();
 hold("on");
 title("DOP vs. Mask Angle");
-plot(a_range, vertcat(DOP.G), 'o', LineWidth = 2);
-plot(a_range, vertcat(DOP.P), '+', LineWidth = 2);
-plot(a_range, vertcat(DOP.H), 'x', LineWidth = 2);
-plot(a_range, vertcat(DOP.V), '^', LineWidth = 2);
-plot(a_range, vertcat(DOP.T), 'v', LineWidth = 2);
+plot(vertcat(DOP.G), 'o', LineWidth = 2);
+plot(vertcat(DOP.P), '+', LineWidth = 2);
+plot(vertcat(DOP.H), 'x', LineWidth = 2);
+plot(vertcat(DOP.V), '^', LineWidth = 2);
+plot(vertcat(DOP.T), 'v', LineWidth = 2);
 xlabel('Mask Angle');
 ylabel('DOP');
 legend('GDOP', 'PDOP', 'HDOP', 'VDOP', 'TDOP');
@@ -236,11 +238,11 @@ legend('GDOP', 'PDOP', 'HDOP', 'VDOP', 'TDOP');
 figure();
 hold("on");
 title("Error vs. Mask Angle");
-plot(a_range, vertcat(err.G), 'o', LineWidth = 2);
-plot(a_range, vertcat(err.P), '+', LineWidth = 2);
-plot(a_range, vertcat(err.H), 'x', LineWidth = 2);
-plot(a_range, vertcat(err.V), '^', LineWidth = 2);
-plot(a_range, vertcat(err.T), 'v', LineWidth = 2);
+plot(vertcat(err.G), 'o', LineWidth = 2);
+plot(vertcat(err.P), '+', LineWidth = 2);
+plot(vertcat(err.H), 'x', LineWidth = 2);
+plot(vertcat(err.V), '^', LineWidth = 2);
+plot(vertcat(err.T), 'v', LineWidth = 2);
 xlabel('Mask Angle');
 ylabel('Error (m)');
 legend({'Geometry', 'Position', 'Horizontal', 'Vertical', 'Time'});
@@ -290,16 +292,16 @@ function [DOP, error] = GPS_STATS(sigma2, H, lla0)
     P = sigma2*inv(H'*H);
     C = ECEF_ENU(lla0(1), lla0(2));
     P(1:3, 1:3) = C*P(1:3, 1:3)*C';
-    DOP.G = norm(diag(P)./sigma2);
-    DOP.P = norm(diag(P(1:3,1:3))./sigma2);
-    DOP.H = norm(diag(P(1:2,1:2))./sigma2);
-    DOP.V = norm(diag(P(3,3))./sigma2);
+    DOP.G = sqrt(sum(diag(P)./sigma2));
+    DOP.P = sqrt(sum(diag(P(1:3,1:3))./sigma2));
+    DOP.H = sqrt(sum(diag(P(1:2,1:2))./sigma2));
+    DOP.V = sqrt(sum(diag(P(3,3))./sigma2));
     error.G = sigma2*DOP.G;
     error.P = sigma2*DOP.P;
     error.H = sigma2*DOP.H;
     error.V = sigma2*DOP.V;
     if size(H) > 3 
-        DOP.T = norm(diag(P(4,4))./sigma2);
+        DOP.T = sqrt(sum(diag(P(4,4))./sigma2));
         error.T = sigma2*DOP.T;
     end
 end
