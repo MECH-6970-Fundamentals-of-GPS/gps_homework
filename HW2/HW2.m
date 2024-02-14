@@ -181,9 +181,10 @@ fprintf(['4e) The position and bias solution w/ 2 SVs & 2 SOOPs: ' ...
 figure();
 hold("on");
 title('4) Errors for Varying Scenarios');
+subtitle("Error in ENU");
 bar(x,y);
 xlabel('Scenario');
-ylabel('Error (m)');
+ylabel('RMS Error (m)');
 legend('Geometry', 'Horizontal', 'Vertical');
 
 %% QUESTION 5
@@ -226,6 +227,7 @@ end
 figure();
 hold("on");
 title("DOP vs. Mask Angle");
+subtitle("DOP in ENU");
 plot(vertcat(DOP.G), 'o', LineWidth = 2);
 plot(vertcat(DOP.P), '+', LineWidth = 2);
 plot(vertcat(DOP.H), 'x', LineWidth = 2);
@@ -238,19 +240,20 @@ legend('GDOP', 'PDOP', 'HDOP', 'VDOP', 'TDOP');
 figure();
 hold("on");
 title("Error vs. Mask Angle");
+subtitle("Error in ENU");
 plot(vertcat(err.G), 'o', LineWidth = 2);
 plot(vertcat(err.P), '+', LineWidth = 2);
 plot(vertcat(err.H), 'x', LineWidth = 2);
 plot(vertcat(err.V), '^', LineWidth = 2);
 plot(vertcat(err.T), 'v', LineWidth = 2);
 xlabel('Mask Angle');
-ylabel('Error (m)');
+ylabel('RMS Error (m)');
 legend({'Geometry', 'Position', 'Horizontal', 'Vertical', 'Time'});
 
 fprintf(['5) In this particular scenario, the mask angle can be rather\n' ...
     '\thigh without the position error going up significantly. This is \n' ...
-    '\tprobably due to the fact that the majority of the satellites are \n' ...
-    '\t30 deg or higher from the horizon. In a scenario where more of the \n' ...
+    '\tprobably due to the fact that at least 5 satellites are above 30 \n' ...
+    '\t deg from the horizon. In a scenario where more of the \n' ...
     '\tSVs were on the horizon, you would see the error rise dramatically \n' ...
     '\tat lower mask angles.\n']);
 %% FUNCTIONS
@@ -296,13 +299,13 @@ function [DOP, error] = GPS_STATS(sigma2, H, lla0)
     DOP.P = sqrt(sum(diag(P(1:3,1:3))./sigma2));
     DOP.H = sqrt(sum(diag(P(1:2,1:2))./sigma2));
     DOP.V = sqrt(sum(diag(P(3,3))./sigma2));
-    error.G = sigma2*DOP.G;
-    error.P = sigma2*DOP.P;
-    error.H = sigma2*DOP.H;
-    error.V = sigma2*DOP.V;
+    error.G = sqrt(sigma2)*DOP.G;
+    error.P = sqrt(sigma2)*DOP.P;
+    error.H = sqrt(sigma2)*DOP.H;
+    error.V = sqrt(sigma2)*DOP.V;
     if size(H) > 3 
         DOP.T = sqrt(sum(diag(P(4,4))./sigma2));
-        error.T = sigma2*DOP.T;
+        error.T = sqrt(sigma2)*DOP.T;
     end
 end
 
