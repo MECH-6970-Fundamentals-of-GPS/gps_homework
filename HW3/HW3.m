@@ -206,17 +206,17 @@ end
 
 DOP_2SVs = inv(H'*H);
 PDOP_2SVs = sqrt(diag(DOP_2SVs(1:2,1:2)));
-% 
-% % 4 SVs
-% dX = 1e3*ones(1,2);
-% Xu_4SVs = zeros(1,2);
-% while norm(dX) > 1e-4
-%     r = vecnorm((Xs - Xu_4SVs), 2 ,2);
-%     U = (Xs - Xu_4SVs)./r;
-%     H = -U;
-%     dX = pinv(H)*(rho_u - r);
-%     Xu_4SVs = Xu_4SVs + dX';
-% end
+
+% 4 SVs
+dX = 1e3*ones(1,2);
+Xu_4SVs = zeros(1,2);
+while norm(dX) > 1e-4
+    r = vecnorm((Xs - Xu_4SVs), 2 ,2);
+    U = (Xs - Xu_4SVs)./r;
+    H = -U;
+    dX = pinv(H)*(rho_u - r);
+    Xu_4SVs = Xu_4SVs + dX';
+end
 
 DOP_4SVs = inv(H'*H);
 PDOP_4SVs = sqrt(diag(DOP_4SVs(1:2,1:2)));
@@ -277,8 +277,14 @@ clear;
 prn4 = genCA(4,1023);
 figure();
 hold('on');
+title('PRN #4 C/A Code');
 plot(prn4(1:16), '-x');
 plot(prn4(end-16:end), '-o');
+xlabel('Index');
+ylabel('C/A Code');
+legend('First 16', 'Last 16');
+ax = gca;
+ax.FontSize = 18;
 
 prn4_2046 = genCA(4,2046);
 prn4_1023_1 = prn4_2046(1:1023);
@@ -286,14 +292,25 @@ prn4_1023_2 = prn4_2046(1024:2046);
 corr4 = scorr(prn4_1023_1, prn4_1023_2);
 
 figure();
+hold('on');
+title('PRN #4 Autocorrelation');
 plot(corr4);
+xlabel('Shift');
+ylabel('Correlation');
+ax = gca;
+ax.FontSize = 18;
 
 prn7 = genCA(7);
 figure();
 hold('on');
+title('PRN #7 C/A Code');
 plot(prn7(1:16), '-x');
 plot(prn7(end-16:end), '-o');
-
+xlabel('Index');
+ylabel('C/A Code');
+legend('First 16', 'Last 16');
+ax = gca;
+ax.FontSize = 18;
 %% PART VIII
 clear;
 
@@ -302,21 +319,57 @@ prn7 = genCA(7);
 
 figure();
 histogram(prn4);
+title('PRN #4 Histogram');
+xlabel('Value');
+ylabel('Occurrences');
+ax = gca;
+ax.FontSize = 18;
+
 figure();
 histogram(prn7);
+title('PRN #7 Histogram');
+xlabel('Value');
+ylabel('Occurences');
+ax = gca;
+ax.FontSize = 18;
 
 figure();
 plot(abs(fft(prn4)));
+title('PRN #4 Power Spectral Density');
+xlabel('Frequency (Hz)');
+ylabel('Power');
+ax = gca;
+ax.FontSize = 18;
 figure();
 plot(abs(fft(prn7)));
+title('PRN #7 Power Spectral Density');
+xlabel('Frequency (Hz)');
+ylabel('Power');
+ax = gca;
+ax.FontSize = 18;
 
 figure();
 plot(scorr(prn4))
+title('PRN #4 Autocorrelation');
+xlabel('Shift');
+ylabel('Correlation');
+ax = gca;
+ax.FontSize = 18;
 figure();
 plot(scorr(prn7))
+title('PRN #7 Autocorrelation');
+xlabel('Shift');
+ylabel('Correlation');
+ax = gca;
+ax.FontSize = 18;
 
 figure()
 plot(scorr(prn4,prn7))
+title('PRN #4 & #7 Cross Correlation');
+xlabel('Shift');
+ylabel('Correlation');
+ax = gca;
+ax.FontSize = 18;
 
 %% PART IX
 clear;
@@ -340,8 +393,17 @@ prn7_carrL1 = prn7.*carrL1;
 
 figure();
 plot(abs(fftshift(fft(prn4_carrL1))));
+title('PRN #4 w/ L1 Power Spectral Density');
+xlabel('Frequency (Hz)');
+ylabel('Power');
 set(gca, 'YScale', 'log');
+ax = gca;
+ax.FontSize = 18;
 figure();
 plot(abs(fftshift(fft(prn7_carrL1))));
 set(gca, 'YScale', 'log');
-
+title('PRN #7 w/ L1 Power Spectral Density');
+xlabel('Frequency (Hz)');
+ylabel('Power');
+ax = gca;
+ax.FontSize = 18;
