@@ -159,10 +159,10 @@ fprintf(['4e) Converged in %d iterations w/ 2 SVs & 2 SOOPs given ' ...
 
 lla0 = ecef2lla(Xu_9(1:3));
 % This function converts to ENU
-[DOP4, err4] = GPS_STATS(r_var, H_4, lla0);
-[DOP9, err9] = GPS_STATS(r_var, H_9, lla0);
-[DOPcl, errCl] = GPS_STATS(r_var, H_cl, lla0);
-[DOP_SOOP, errSOOP] = GPS_STATS(r_var, H_SOOP, lla0);
+[DOP4, err4] = gpsStats(r_var, H_4, lla0);
+[DOP9, err9] = gpsStats(r_var, H_9, lla0);
+[DOPcl, errCl] = gpsStats(r_var, H_cl, lla0);
+[DOP_SOOP, errSOOP] = gpsStats(r_var, H_SOOP, lla0);
 x = ["4 SVs" "9 SVs" "4 SVs + Perfect Clock" "2 SVs + 2 SOOPs"];
 y = [err4.G err9.G errCl.G errSOOP.G;
      err4.H err9.H errCl.H errSOOP.H;
@@ -217,7 +217,7 @@ for a = a_range
             state(i,:) = state(i,:) + dx';
         end
         % This function converts to ENU
-        [DOP(i), err(i)] = GPS_STATS(r_var, H, lla0);
+        [DOP(i), err(i)] = gpsStats(r_var, H, lla0);
         i = i + 1;
     else
         break;
@@ -256,17 +256,8 @@ fprintf(['5) In this particular scenario, the mask angle can be rather\n' ...
     '\t deg from the horizon. In a scenario where more of the \n' ...
     '\tSVs were on the horizon, you would see the error rise dramatically \n' ...
     '\tat lower mask angles.\n']);
-%% FUNCTIONS
-function [s] = LS(y, H, s0)
-    s = s0;
-    ds = 1e3*ones(length(s0),1);
-    while norm(ds) > 1e-4
-        y_hat = H*s;
-        ds = pinv(H)*(y - y_hat);
-        s = s + ds;
-    end
-end
 
+%% FUNCTIONS
 function [Xu, H, idx] = GPS_LS(rho, Xs, Xu)
     dx = 1e3*ones(4,1);
     flag = false;
@@ -289,32 +280,4 @@ function [Xu, H, idx] = GPS_LS(rho, Xs, Xu)
         Xu = Xu + dx';
         idx = idx + 1;
     end
-end
-
-function [DOP, error] = GPS_STATS(sigma2, H, lla0)
-    P = sigma2*inv(H'*H);
-    C = ECEF_ENU(lla0(1), lla0(2));
-    P(1:3, 1:3) = C*P(1:3, 1:3)*C';
-    DOP.G = sqrt(sum(diag(P)./sigma2));
-    DOP.P = sqrt(sum(diag(P(1:3,1:3))./sigma2));
-    DOP.H = sqrt(sum(diag(P(1:2,1:2))./sigma2));
-    DOP.V = sqrt(sum(diag(P(3,3))./sigma2));
-    error.G = sqrt(sigma2)*DOP.G;
-    error.P = sqrt(sigma2)*DOP.P;
-    error.H = sqrt(sigma2)*DOP.H;
-    error.V = sqrt(sigma2)*DOP.V;
-    if size(H) > 3 
-        DOP.T = sqrt(sum(diag(P(4,4))./sigma2));
-        error.T = sqrt(sigma2)*DOP.T;
-    end
-end
-
-function [C] = ENU_ECEF(lat, lon)
-    C = [-sind(lon), -cosd(lon)*sind(lat), cosd(lon)*cosd(lat);
-          cosd(lon), -sind(lon)*sind(lat), sind(lon)*cosd(lat);
-                  0,            cosd(lat),           sind(lat)];
-end
-
-function [C] = ECEF_ENU(lat, lon)
-    C = ENU_ECEF(lat, lon)';
 end
