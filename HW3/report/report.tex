@@ -67,6 +67,12 @@ standard deviation is $\sigma_{\int w} = \sigma_w \Delta t\sqrt{k} = \sigma_w\sq
     \caption{Standard Deviation of the Monte Carlo Simulation of Random Walk}
 \end{figure}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p2_rw_run.png}\label{fig:p2_rw_run}
+    \caption{Integrated White Noise vs. Time (Run 1 of Monte Carlo)}
+\end{figure}
+
 \subsection*{Bonus}
 Provide a Histogram of the Monte-Carlo simulation at a few select time slots.
 
@@ -96,6 +102,8 @@ Markov process is zero mean with a standard deviation of is $\sigma_x = \sigma_w
     \includegraphics[width=0.75\linewidth]{../figures/p2_gm_sigma.png}\label{fig:p2_gm_sigma}
     \caption{Standard Deviation of the Monte Carlo Simulation of Gauss Markov}
 \end{figure}
+
+As seen from the above figures, increasing $\tau$ increases both the rise time and the steady state of $\sigma$.
 
 \section*{Problem III}
 Determine the expected uncertainty for an L1-L5 ionosphere free pseudorange measurement
@@ -130,14 +138,27 @@ The receiver noises are not frequency-dependent, so given the signals are read w
     \sigma_{\rho_{IF}} =  \sqrt{\sigma_{rcvr}^2(\frac{f_{L1}^2}{f_{L1}^2 - f_{L2}^2} + \frac{f_{L2}^2}{f_{L1}^2 - f_{L2}^2})}\\
 \end{gather*}
 
-Using the above equation for the standard deviation on the Ionospheric-Free pseudorange, an estimate of that value can be calculated for any combination of frequencies, just replacing $f_{L1}$ and $f_{L2}$ with the utilized frequencies.  Doing this shows that L1+L5 is the best combination for obtaining Ionospheric-Free psuedoranges as it produces the smallest standard deviation.
+Using the above equation for the standard deviation on the Ionospheric-Free pseudorange, an estimate of that value can be calculated for any combination of frequencies, 
+just replacing $f_{L1}$ and $f_{L2}$ with the utilized frequencies.  Doing this shows that L1+L5 is the best combination for obtaining Ionospheric-Free psuedoranges as it 
+produces the smallest scale factor to the standard deviation.\\
+A table of the scale values on $\sigma$ is shown below for the different frequency combinations.
+
+\begin{center}
+    \begin{tabular}{ | l | c | r }
+      \hline
+      Frequencies & Scale for $\sigma$ \\ \hline
+      L1+L2 & 2.9793 \\ \hline
+      L1+L5 & 2.5840 \\ \hline
+      L2+L5 & 16.4918 \\ \hline
+    \end{tabular}
+  \end{center}
 
 \section*{Problem IV}
 Show that the differential GPS problem is linear. In other words derive the following
 expression:
     \begin{center}
     $\Delta\rho=\begin{bmatrix}
-        uv_x & uv_y & uv_z & 1
+        -uv_x & -uv_y & -uv_z & 1
         \end{bmatrix}\begin{bmatrix}
         r_x\\r_y\\r_z\\c\delta t_{ab}
         \end{bmatrix}$
@@ -147,33 +168,35 @@ expression:
 To show the problem of differential GPS is linear, it begins with the nonlinear, matrix equation for the user's pseudorange as shown in \Cref{eq:psr_mat}
 
 \begin{equation}
-    \rho_u = \begin{bmatrix}
-        uv_x & uv_y & uv_z & 1
+    \delta\rho_u = \begin{bmatrix}
+        -uv_x & -uv_y & -uv_z & 1
         \end{bmatrix}\begin{bmatrix}
         \delta x_u\\\delta y_u\\\delta z_u\\c\delta t_u
         \end{bmatrix}\label{eq:psr_mat}
 \end{equation}
 
-Taking \Cref{eq:psr_mat} and differencing it with a similar equation for the base station, the following equation comes out:
+Given that the base and the user are close enough, the unit vectors for the base and the user can be assumed to be the same.  
+The user psuedorange, as shown above, can be differenced with a similar looking equation for the base resulting in the below equation.
 
 \begin{equation}
     \Delta\rho = \begin{bmatrix}
-        uv_x & uv_y & uv_z & 1
+        -uv_x & -uv_y & -uv_z & 1
         \end{bmatrix}\begin{bmatrix}
         \delta x_u - \delta x_b\\\delta y_u - \delta y_b\\\delta z_u - \delta z_b\\c\delta t_u - c\delta t_b
         \end{bmatrix}\label{eq:del_psr_mat}
 \end{equation}
 
-Given that $\delta x = x - \hat{x}$ and it is assumed that the base and user are close enough that $\hat{x_u}$ and $\hat{x_b}$ are the same, the above equation reduces to:
+Because the unit vectors for the base and the user are assumed to be the same, they are factored out.  Now, given that $\delta x = x - \hat{x}$ and the assumption that the base and user 
+pseudorange equations are linearized around the same point($\hat{x_u} = \hat{x_b}$), the above equation reduces to:
 
 \begin{center}
 $\Delta\rho=\begin{bmatrix}
-    uv_x & uv_y & uv_z & 1
+    -uv_x & -uv_y & -uv_z & 1
     \end{bmatrix}\begin{bmatrix}
-    r_x\\r_y\\r_z\\c\delta t_{ab}
+    r_x\\r_y\\r_z\\c\delta t_{ub}
     \end{bmatrix}$
 \end{center}
-
+where $r_x = x_u - x_b$.
 
 \section*{Problem V}
 Set up your own 2D planar trilateration problem. Place the SVs at (0,300) (100,400),
@@ -183,6 +206,9 @@ user at (401,0).
 \subsection*{Part A}
 Solve for the position of the user using 2 SVs and then 4 SVs assuming no clock
 errors. How does the PDOP change for the two cases?
+
+\subsection*{Part A Comments}
+The PDOP was $\sim$5x larger with only 2 SVs as compared to 4.
 
 \subsection*{Part B}
 Solve for the position of the user assuming you need to solve for the user clock bias.
@@ -203,6 +229,20 @@ Assuming the range error is zero mean with unit variance, what is the order of
 accuracy in the above 4 solution methods?
 
 \subsection*{Solution}
+
+\begin{center}
+    \begin{tabular}{ | l | c | c | c |}
+        \hline
+        Scenario & x & y & b \\ \hline
+        A-2SVs & 401 & $\sim$0 & - \\ \hline
+        A-4SVs & 401 & $\sim$0 & - \\ \hline
+        B-4SVs + Bias & 401 & $\sim$0 & $\sim$0 \\ \hline
+        C-DGPS-Single & 401 & -0.0014 & -0.0005 \\ \hline
+        D-DGPS-Double & 401 & -0.0014 & - \\ \hline
+    
+    \end{tabular}
+  \end{center}
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{../figures/p5_pdop.png}\label{fig:p5_pdop}
@@ -227,7 +267,8 @@ planar problem in \#3.
     \caption{PDOP for Real Data w/ 8SVs}
 \end{figure}
 
-Though not exact, the 4SV scenario with the real satellite data has a PDOP ~3x larger than the 8SV scenario.  This is around the same difference between the 4SV and 2SV scenarios in Part V.
+Though not exact, the 4SV scenario with the real satellite data has a PDOP ~3x larger than the 8SV scenario.  This is a similar 
+difference to what was shown between the 4SV and 2SV scenarios in Part V.
 
 \section*{Problem VII}
 Chapter 2, Problem 1a and 1b for PRN \#4. Repeat 1a for PRN \#7
@@ -249,7 +290,38 @@ Using your PRN sequence for PRN 4 and 7, repeat problem \#2 from HW\#1. Compare 
 results to the results for your made up sequence.
 
 \subsection*{Solution}
-PUT STUFF HERE
+The results from HW1 - Problem II greatly resemble the results of the same analysis done on the PRN signals.  This is indicative of the fact that the PRNs contain a lot of the same properties as a random sequence which makes sense given they are named, "Pseudo Random Number."
+\subsection*{HW1 - Problem II Results}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p8_hw1_2a.png}\label{fig:p8_hw1_2a}
+    \caption{HW1 Histogram of Random Sequences}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p8_hw1_2b.png}\label{fig:p8_hw1_2b}
+    \caption{HW1 PSD of Random Sequences}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p8_hw1_2c.png}\label{fig:p8_hw1_2c}
+    \caption{HW1 Autocorrelation of Random Sequences}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p8_hw1_2d.png}\label{fig:p8_hw1_2d}
+    \caption{HW1 Cross Correlation of Random Sequences}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p8_hw1_2bonus1.png}\label{fig:p8_hw1_2bonus1}
+    \caption{HW1 Cross Correlation of Long Random Sequences}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p8_hw1_2bonus2.png}\label{fig:p8_hw1_2bonus2}
+    \caption{HW1 Cross Correlation of Long Random Sequences}
+\end{figure}
 
 \subsection*{Part A}
 Plot the histogram on each sequence

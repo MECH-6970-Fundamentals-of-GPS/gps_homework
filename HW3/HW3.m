@@ -8,6 +8,9 @@ Nmc = 1000;                 % Number of Monte Carlo Runs
 sigma_a = 0.5;              % Standard Deviation of a
 sigma_b = 0.2;              % Standard Deviation of b
 
+mean_an = 0;
+sigma_an = sqrt(9*sigma_a^2 + 16*sigma_b^2);
+
 y_ = 0;                     % Expected Mean
 sigma_y = sqrt(9*sigma_a^2 ...
     + 16*sigma_b^2);        % Expected Standard Devation
@@ -20,6 +23,9 @@ end
 y_s = mean(y);              % Sample Mean
 sigma_ys = std(y);          % Sample Standard Deviation
 
+g_x = linspace(min(y), max(y), Nmc);
+g_y = normpdf(g_x, mean_an, sigma_an);
+
 fprintf('Sample Mean from Monte Carlo: %0.3g\n', y_s);
 fprintf('Sample Standard Deviation from Monte Carlo: %0.3g\n\n', sigma_ys);
 fprintf('Expected Mean: %0.3g\n', y_);
@@ -28,7 +34,8 @@ fprintf('Expected Standard Deviation: %0.3g\n\n', sigma_y);
 figure();
 hold('on')
 title('Histogram of Y');
-histogram(y);
+histogram(y, 'Normalization','pdf');
+plot(g_x, g_y, 'LineWidth', 2);
 xlabel('Y-Value');
 ylabel('Occurrences');
 ax = gca;
@@ -107,11 +114,34 @@ ax.FontSize = 14;
 f = gcf;
 exportgraphics(f,'figures/p2_rw_sigma.png','Resolution',300)
 
+figure();
+hold('on');
+title('Integrated White Noise vs. Time');
+subtitle('Run #1 of the Monte Carlo')
+plot(secs, x1(:,1), 'LineWidth', 2);
+xlabel('Time (hh:mm:ss)');
+ylabel('Integrate White Noise');
+ax = gca;
+ax.FontSize = 14;
+
+f = gcf;
+exportgraphics(f,'figures/p2_rw_run.png','Resolution',300)
+
+g_xt1 = linspace(min(x1(2,:)), max(x1(2,:)), Nmc);
+g_xt2 = linspace(min(x1(round(length(time)/4),:)), max(x1(round(length(time)/4),:)), Nmc);
+g_xt3 = linspace(min(x1(3*round(length(time)/4),:)), max(x1(3*round(length(time)/4),:)), Nmc);
+g_xt4 = linspace(min(x1(length(time),:)), max(x1(length(time),:)), Nmc);
+g_yt1 = normpdf(g_xt1, 0, sigma_x1_a(2));
+g_yt2 = normpdf(g_xt2, 0, sigma_x1_a(round(length(time)/4)));
+g_yt3 = normpdf(g_xt3, 0, sigma_x1_a(3*round(length(time)/4)));
+g_yt4 = normpdf(g_xt4, 0, sigma_x1_a(length(time)));
+
 tiledlayout(2,2)
 nexttile
 hold('on')
 title(['Histogram of t=',num2str(time(2))]);
-histogram(x1(2,:));
+histogram(x1(2,:), 'Normalization','pdf');
+plot(g_xt1, g_yt1, 'LineWidth', 2);
 xlabel('Value');
 ylabel('Occurrences');
 ax = gca;
@@ -120,7 +150,8 @@ ax.FontSize = 14;
 nexttile
 hold('on')
 title(['Histogram of t=', num2str(time(round(length(time)/4)))]);
-histogram(x1(round(length(time)/4),:));
+histogram(x1(round(length(time)/4),:), 'Normalization','pdf');
+plot(g_xt2, g_yt2, 'LineWidth', 2);
 xlabel('Value');
 ylabel('Occurrences');
 ax = gca;
@@ -129,7 +160,8 @@ ax.FontSize = 14;
 nexttile
 hold('on')
 title(['Histogram of t=', num2str(time(3*round(length(time)/4)))]);
-histogram(x1(3*round(length(time)/4),:));
+histogram(x1(3*round(length(time)/4),:), 'Normalization','pdf');
+plot(g_xt3, g_yt3, 'LineWidth', 2);
 xlabel('Value');
 ylabel('Occurrences');
 ax = gca;
@@ -138,7 +170,8 @@ ax.FontSize = 14;
 nexttile
 hold('on')
 title(['Histogram of t=', num2str(time(length(time)))]);
-histogram(x1(length(time),:));
+histogram(x1(length(time),:), 'Normalization','pdf');
+plot(g_xt4, g_yt4, 'LineWidth', 2);
 xlabel('Value');
 ylabel('Occurrences');
 ax = gca;
@@ -512,6 +545,103 @@ exportgraphics(f,'figures/p7_prn7_16.png','Resolution',300)
 
 %% PART VIII
 clear;
+
+% Q2 Variables
+N = 100;
+a1 = 2*ceil(rand(N,1)-0.5)-1;
+a2 = 2*ceil(rand(N,1)-0.5)-1;
+N_long = 1000;
+a1_long = 2*ceil(rand(N_long,1)-0.5)-1;
+a2_long = 2*ceil(rand(N_long,1)-0.5)-1;
+
+% HW1-2A
+figure();
+tiledlayout(2,1);
+nexttile();
+histogram(a1);
+xlabel("Value");
+ylabel("Occurences");
+title("Histogram of Random Sequence 1");
+nexttile();
+histogram(a2);
+xlabel("Value");
+ylabel("Occurences");
+title("Histogram of Random Sequence 2");
+
+f = gcf;
+exportgraphics(f,'figures/p8_hw1_2a.png','Resolution',300)
+
+% HW1-2B
+figure();
+tiledlayout(2,1);
+nexttile();
+plot(abs(fft(a1)));
+title("PSD of Random Sequence 1");
+nexttile();
+plot(abs(fft(a2)));
+title("PSD of Random Sequence 2");
+
+f = gcf;
+exportgraphics(f,'figures/p8_hw1_2b.png','Resolution',300)
+
+% HW1-2C
+acorr1 = scorr(a1);
+acorr2 = scorr(a2);
+figure();
+tiledlayout(2,1);
+nexttile();
+plot(-N:N, acorr1);
+title("Autocorrelation of Random Sequence 1");
+nexttile();
+plot(-N:N, acorr2);
+title("Autocorrelation of Random Sequence 2");
+
+f = gcf;
+exportgraphics(f,'figures/p8_hw1_2c.png','Resolution',300)
+
+% HW1-2D
+xcorr12 = scorr(a1,a2);
+xcorr21 = scorr(a2,a1);
+figure();
+tiledlayout(2,1);
+nexttile();
+plot(-N:N, xcorr12);
+title("Cross Correlation of Random Sequence 1 w/ 2");
+nexttile();
+plot(-N:N, xcorr21);
+title("Cross Correlation of Random Sequence 2 w/ 1");
+
+f = gcf;
+exportgraphics(f,'figures/p8_hw1_2d.png','Resolution',300)
+
+% HW1-2BONUS
+acorr1_long = scorr(a1_long);
+acorr2_long = scorr(a2_long);
+figure();
+tiledlayout(2,1);
+nexttile();
+plot(-N_long:N_long, acorr1_long);
+title("Autocorrelation of Random Sequence 1");
+nexttile();
+plot(-N_long:N_long, acorr2_long);
+title("Autocorrelation of Random Sequence 2");
+
+f = gcf;
+exportgraphics(f,'figures/p8_hw1_2bonus1.png','Resolution',300)
+
+xcorr12_long = scorr(a1_long,a2_long);
+xcorr21_long = scorr(a2_long,a1_long);
+figure();
+tiledlayout(2,1);
+nexttile();
+plot(-N_long:N_long, xcorr12_long);
+title("Cross Correlation of Random Sequence 1 w/ 2");
+nexttile();
+plot(-N_long:N_long, xcorr21_long);
+title("Cross Correlation of Random Sequence 2 w/ 1");
+
+f = gcf;
+exportgraphics(f,'figures/p8_hw1_2bonus2.png','Resolution',300)
 
 prn4 = genCA(4);
 prn7 = genCA(7);
