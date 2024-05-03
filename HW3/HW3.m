@@ -8,9 +8,6 @@ Nmc = 1000;                 % Number of Monte Carlo Runs
 sigma_a = 0.5;              % Standard Deviation of a
 sigma_b = 0.2;              % Standard Deviation of b
 
-mean_an = 0;
-sigma_an = sqrt(9*sigma_a^2 + 16*sigma_b^2);
-
 y_ = 0;                     % Expected Mean
 sigma_y = sqrt(9*sigma_a^2 ...
     + 16*sigma_b^2);        % Expected Standard Devation
@@ -24,7 +21,7 @@ y_s = mean(y);              % Sample Mean
 sigma_ys = std(y);          % Sample Standard Deviation
 
 g_x = linspace(min(y), max(y), Nmc);
-g_y = normpdf(g_x, mean_an, sigma_an);
+g_y = normpdf(g_x, y_, sigma_y);
 
 fprintf('Sample Mean from Monte Carlo: %0.3g\n', y_s);
 fprintf('Sample Standard Deviation from Monte Carlo: %0.3g\n\n', sigma_ys);
@@ -501,7 +498,7 @@ figure();
 hold('on');
 title('PRN #4 C/A Code');
 stem(prn4(1:16), 'LineWidth', 2);
-stem(prn4(end-16:end), 'LineWidth', 2);
+stem(prn4(end-15:end), 'LineWidth', 2);
 xlabel('Index');
 ylabel('C/A Code');
 legend('First 16', 'Last 16');
@@ -533,7 +530,7 @@ figure();
 hold('on');
 title('PRN #7 C/A Code');
 stem(prn7(1:16), 'LineWidth', 2);
-stem(prn7(end-16:end), 'LineWidth', 2);
+stem(prn7(end-15:end), 'LineWidth', 2);
 xlabel('Index');
 ylabel('C/A Code');
 legend('First 16', 'Last 16');
@@ -744,16 +741,16 @@ prn7 = upsample(prn7,length(time));
 
 prn4_carrL1 = prn4.*carrL1;
 prn7_carrL1 = prn7.*carrL1;
-psd4 = 10*log10(fftshift(abs((fft(prn4_carrL1)))));
-psd7 = 10*log10(fftshift(abs((fft(prn7_carrL1)))));
+psd4 = fftshift(abs((fft(prn4_carrL1))));
+psd7 = fftshift(abs((fft(prn7_carrL1))));
 
 fx = linspace(SR/-2, SR/2, length(time)) + fL1;
 
 figure();
 plot(fx, psd4, 'LineWidth', 2);
 title('PRN #4 w/ L1 Power Spectral Density');
-xlabel('Frequency (MHz)');
-ylabel('Power (dB)');
+xlabel('Frequency (Hz)');
+ylabel('Power');
 ax = gca;
 ax.FontSize = 14;
 
@@ -763,8 +760,8 @@ exportgraphics(f,'figures/p9_prn4_psd.png','Resolution',300)
 figure();
 plot(fx, psd7, 'LineWidth', 2);
 title('PRN #7 w/ L1 Power Spectral Density');
-xlabel('Frequency (MHz)');
-ylabel('Power (dB)');
+xlabel('Frequency (Hz)');
+ylabel('Power');
 ax = gca;
 ax.FontSize = 14;
 

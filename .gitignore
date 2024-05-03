@@ -1,6 +1,12 @@
 .DS_Store
 *.asv
+*.synctex
+*.log
+*.fls
 *.aux
 *.fdb_latexmk
-*.log
-*.gz
+*.synctex.gz
+*.fls
+*.synctex(busy)
+**/figures/
+**/data/

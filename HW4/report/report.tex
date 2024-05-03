@@ -1,0 +1,217 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{cleveref}
+\usepackage{matlab-prettifier}
+\usepackage{float}
+
+\title{GPS - HW3}
+\author{Walter Livingston}
+\date{March 2024}
+
+\begin{document}
+
+\maketitle
+
+\section*{Problem I}
+Write a controller (matlab or Simulink) for a simple 1/s plant. Assume a unit step input for
+the reference, r(t).
+\subsection*{Part A}
+What type of controller did you use. Provide the Gain Margin, Phase Margin, closed-
+loop eigenvalues, and steady state error.
+\subsection*{Solution}
+I used a proportional controller.  The characteristics of my controller are in the table below.  Plots shown in C.
+
+\begin{center}
+    \begin{tabular}{ | l | c | }
+      \hline
+      Gain Margin & $\infty$ \\ \hline
+      Phase Margin & 90 \\ \hline
+      Eigenvalues & $0 \& -2$ \\ \hline
+      SS Error & $\sim 0$ \\ \hline
+    \end{tabular}
+\end{center}
+
+\subsection*{Part B}
+What is the steady state error if the reference $r(t)$ is a unit ramp input
+\subsection*{Solution}
+Steady state error is 0.5.
+\subsection*{Part C}
+Redesign the controller to track the ramp input and repeat Part A.
+\subsection*{Solution}
+The controller was redesigned as a PI controller.  The controller characteristics are listed in the table below.
+
+\begin{center}
+    \begin{tabular}{ | l | c | }
+      \hline
+      Gain Margin & $\infty$ \\ \hline
+      Phase Margin & 90 \\ \hline
+      Eigenvalues & $-1 \& -1$ \\ \hline
+      SS Error & $\sim 0$ \\ \hline
+    \end{tabular}
+\end{center}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p1.png}\label{fig:p1}
+    \caption{Problem 1 Step \& Ramp Responses}
+\end{figure}
+
+\section*{Problem II}
+Take the sampled 100 Hz sine wave (generate\textunderscore signal(1)) from the website (sampled at 1
+MHz, i.e. $Ts=1e-6$)
+\subsection*{Part A}
+Develop a simple (1 Hz) PLL to track the phase of the signal. Provide plots of phase,
+phase error, as well as the estimated signal vs. true signal.
+\subsection*{Solution}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p2a_phase.png}\label{fig:p2a_phase}
+    \caption{Phase \& Error vs. Time for 1Hz Bandwidth}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p2a_signal.png}\label{fig:p2a_signal}
+    \caption{Signal \& Replica vs. Time for 1Hz Bandwidth}
+\end{figure}
+
+\subsection*{Part B}
+Double the PLL bandwidth and repeat part a.
+\subsection*{Solution}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p2a_phase.png}\label{fig:p2b_phase}
+    \caption{Phase \& Error vs. Time for 2Hz Bandwidth}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p2a_signal.png}\label{fig:p2b_signal}
+    \caption{Signal \& Replica vs. Time for 2Hz Bandwidth}
+\end{figure}
+
+\subsection*{Part C}
+Determine the true frequency and repeat part a.
+\subsection*{Solution}
+
+\subsection*{Part D}
+Modify your PLL to work from the unknown frequency and repeat part a assuming 10
+Hz signal.
+\subsection*{Solution}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p2d_phase.png}\label{fig:p2d_phase}
+    \caption{Phase \& Error vs. Time for 10Hz Initial Frequency}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p2d_signal.png}\label{fig:p2d_signal}
+    \caption{Signal \& Replica vs. Time for 10Hz Initial Frequency}
+\end{figure}
+
+\section*{Problem III}
+Modify your PLL from problem \#3 to operate as a Costas loop filter. Take the 88 second
+data (generate\textunderscore signal(2)) sampled at 1 MHz and decode the data message on the 100 Hz
+sinusoid using your Costas loop filter. The data bits are 1 second wide and are comprised
+of 8 bit ascii characters. The following functions will be of use:
+\subsection*{Solution}
+The databits translate to AU WarEagle.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p3_IQ.png}\label{fig:p3_IQ}
+    \caption{In-Phase \& Quadrature}
+\end{figure}
+
+\section*{Problem IV}
+Develop a simple DLL to phase align the sequence shown below with the digital signal
+(generate\textunderscore signal(3)) provided on the website. The sequence is sampled at 10 samples per
+chip. Plot the delay vs. time (or frequency vs. time depending on your implementation).
+\subsection*{Solution}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p4_tau.png}\label{fig:p4_tau}
+    \caption{Code Phase vs. Time}
+\end{figure}
+
+\section*{Problem VI}
+Take the PRN code for SV \#4 or \#7 (i.e. from HW \#3) and upsample it such that there are
+16 samples at each chip (i.e. the length of this vector will be 1023*16 long).
+
+\subsection*{Part A}
+Show the autocorrelation calculation from -5 chips to +5 chips in 1/16 chip increments.
+\subsection*{Solution}
+Combined Plot shown in Part B
+\subsection*{Part B}
+Repeat with noise $(\sigma=0.2)$ added to the non-shifted signal.\\
+Recall that the autocorrelation function can be calculated as:
+\begin{gather*}
+    R(\tau) = x^T x(\tau) = \sum\textunderscore {1}^{16*1023}x(k)x(k+\tau)
+\end{gather*}
+Note that you must roll $x(\tau)$ around when shifting it, i.e. x(16 × 1023 + 10) = x(11)\\
+You will need code that does the upsample and code shift for Lab \#4 (as well as the
+problem below).
+\subsection*{Solution}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p6_corr.png}\label{fig:p6_corr}
+    \caption{Autocorrelation Comparison}
+\end{figure}
+
+\subsection*{Problem VII}
+Write your own acquisition software to acquire a single satellite from the IFEN IF data file.
+You can write a serial or parallel search algorithm. Provide a plot of the acquisition plane
+(Code and Doppler) and provide the code phase and Doppler results. The C/A (Gold) codes
+for several satellites in view are on the website.
+\subsection*{Solution}
+Parallel acquisition was used.  The code shift is 20 chips and the doppler frequency is 990 Hz on PRN \#7
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{../figures/p7_prn7.png}\label{fig:p7_prn7}
+    \caption{PRN \#7 Acquisition}
+\end{figure}
+
+\section*{Appendix A: Part I Code}
+\lstinputlisting[
+frame=single,
+numbers=left,
+style=Matlab-bw
+]{../matlab/p1.m}
+
+\section*{Appendix B: Part II Code}
+\lstinputlisting[
+frame=single,
+numbers=left,
+style=Matlab-bw
+]{../matlab/p2.m}
+
+\section*{Appendix C: Part III Code}
+\lstinputlisting[
+frame=single,
+numbers=left,
+style=Matlab-bw
+]{../matlab/p3.m}
+
+\section*{Appendix D: Part IV Code}
+\lstinputlisting[
+frame=single,
+numbers=left,
+style=Matlab-bw
+]{../matlab/p4.m}
+
+\section*{Appendix E: Part VI Code}
+\lstinputlisting[
+frame=single,
+numbers=left,
+style=Matlab-bw
+]{../matlab/p6.m}
+
+\section*{Appendix C: Part VII Code}
+\lstinputlisting[
+frame=single,
+numbers=left,
+style=Matlab-bw
+]{../matlab/p7.m}
+
+\end{document}
